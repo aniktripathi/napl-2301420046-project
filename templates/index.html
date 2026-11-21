@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Finance Tracker</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-icon">₹</span><div><b>FinTrack</b><small>PERSONAL FINANCE</small></div></div>
+    <div class="nav-label">WORKSPACE</div>
+    <a class="nav active" href="/">▦ &nbsp; Dashboard</a>
+    <a class="nav" href="#transactions">⇄ &nbsp; Transactions</a>
+    <a class="nav" href="#budgets">◷ &nbsp; Budgets</a>
+    <a class="nav" href="#reports">▥ &nbsp; Reports</a>
+    <div class="sidebar-bottom"><div class="avatar">U</div><div><b>Local User</b><small>Personal account</small></div></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar"><div><span class="eyebrow">OVERVIEW</span><h1>Dashboard</h1></div><div class="date-pill">▣ &nbsp; {{.Month}}</div></header>
+    {{if .Message}}<div class="notice">{{.Message}}</div>{{end}}
+
+    <section class="cards">
+      <article class="stat income"><div class="stat-top"><span>Total income</span><span class="stat-icon">↗</span></div><strong>₹{{printf "%.2f" .Income}}</strong><small>This month</small></article>
+      <article class="stat expense"><div class="stat-top"><span>Total expenses</span><span class="stat-icon">↘</span></div><strong>₹{{printf "%.2f" .Expenses}}</strong><small>This month</small></article>
+      <article class="stat savings"><div class="stat-top"><span>Net savings</span><span class="stat-icon">◈</span></div><strong>₹{{printf "%.2f" .Savings}}</strong><small>Income minus expenses</small></article>
+    </section>
+
+    <section class="grid-two">
+      <article class="panel" id="reports">
+        <div class="panel-heading"><div><h2>Monthly overview</h2><p>Income and expenses for {{.Month}}</p></div><span class="tag">CURRENT MONTH</span></div>
+        <div class="bar-area">
+          <div class="bar-row"><span>Income</span><div class="track"><div class="fill green" style="width:{{barWidth .Income .Expenses}}%"></div></div><b>₹{{printf "%.0f" .Income}}</b></div>
+          <div class="bar-row"><span>Expenses</span><div class="track"><div class="fill orange" style="width:{{barWidth .Expenses .Income}}%"></div></div><b>₹{{printf "%.0f" .Expenses}}</b></div>
+        </div>
+        <div class="chart-note">Bars compare this month's recorded income and expenses.</div>
+      </article>
+
+      <article class="panel" id="budgets">
+        <div class="panel-heading"><div><h2>Monthly budgets</h2><p>Track category spending</p></div></div>
+        <form class="compact-form" action="/budget/add" method="POST">
+          <input name="category" placeholder="Category (e.g. Food)" required>
+          <input name="amount" type="number" min="0.01" step="0.01" placeholder="Budget ₹" required>
+          <input name="month" type="month" value="{{.Month}}" required>
+          <button class="button primary" type="submit">Save budget</button>
+        </form>
+        {{if .Budgets}}
+          {{range .Budgets}}
+          <div class="budget-item">
+            <div class="budget-line"><b>{{.Category}}</b><span>₹{{printf "%.0f" .Spent}} / ₹{{printf "%.0f" .Amount}}</span></div>
+            <div class="track"><div class="fill blue" style="width:{{budgetWidth .Spent .Amount}}%"></div></div>
+            <div class="budget-foot"><span>{{printf "%.0f" (budgetPercent .Spent .Amount)}}% used</span>
+              <form action="/budget/delete" method="POST"><input type="hidden" name="id" value="{{.ID}}"><button class="link-button" type="submit">Remove</button></form>
+            </div>
+          </div>
+          {{end}}
+        {{else}}<p class="empty-small">No budgets yet. Add your first category budget above.</p>{{end}}
+      </article>
+    </section>
+
+    <section class="panel transaction-panel" id="transactions">
+      <div class="panel-heading"><div><h2>Recent transactions</h2><p>Your latest income and expenses</p></div><a class="button secondary" href="/export">↓ Export CSV</a></div>
+      <form class="transaction-form" action="/transaction/add" method="POST">
+        <select name="type" required><option value="expense">Expense</option><option value="income">Income</option></select>
+        <input name="category" placeholder="Category" required>
+        <input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount ₹" required>
+        <input name="date" type="date" value="{{today}}" required>
+        <input name="description" placeholder="Description">
+        <select name="method"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option></select>
+        <button class="button primary" type="submit">+ Add transaction</button>
+      </form>
+      <div class="table-wrap"><table><thead><tr><th>TYPE</th><th>CATEGORY</th><th>DESCRIPTION</th><th>DATE</th><th>METHOD</th><th>AMOUNT</th><th></th></tr></thead>
+      <tbody>
+      {{range .Transactions}}
+        <tr>
+          <td><span class="type-pill {{.Type}}">{{.Type}}</span></td><td><b>{{.Category}}</b></td><td class="muted">{{.Description}}</td><td>{{.Date}}</td><td>{{.Method}}</td>
+          <td class="amount {{.Type}}">{{if eq .Type "income"}}+{{else}}-{{end}}₹{{printf "%.2f" .Amount}}</td>
+          <td><form action="/transaction/delete" method="POST" onsubmit="return confirm('Delete this transaction?')"><input type="hidden" name="id" value="{{.ID}}"><button class="delete" type="submit" title="Delete">×</button></form></td>
+        </tr>
+      {{else}}<tr><td colspan="7" class="empty">No transactions yet. Add your first transaction above.</td></tr>{{end}}
+      </tbody></table></div>
+    </section>
+    <footer>FinTrack · Your data stays on this computer · SQLite local database</footer>
+  </main>
+</div>
+</body>
+</html>
